@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#12131a">
+<meta name="description" content="PUZZLE — классический фотопазл. Собери картинку из галереи или из своей фотографии. Работает офлайн.">
+<title>PUZZLE — Собери картинку</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+<!-- ============================ MAIN MENU ============================ -->
+<section id="screen-menu" class="screen screen-menu active" data-screen="menu">
+  <div class="menu-bg" aria-hidden="true"></div>
+  <div class="menu-content">
+    <div class="logo-block">
+      <div class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="56" height="56">
+          <path d="M14 14h14v4.2a5 5 0 1 0 0 9.6V32H14V22.8a5 5 0 1 1 0-9.6V14z" fill="var(--accent)"/>
+          <path d="M32 14h14v9.2a5 5 0 1 1 0 9.6V32H32V18.2a5 5 0 1 0 0-9.6z" fill="var(--accent-2)" opacity="0.9"/>
+        </svg>
+      </div>
+      <h1 class="logo-title">PUZZLE</h1>
+      <p class="logo-sub">Собери картинку.</p>
+    </div>
+
+    <div id="continue-banner" class="continue-banner hidden">
+      <div class="continue-info">
+        <div class="continue-title" id="continue-title">Продолжить игру?</div>
+        <div class="continue-meta" id="continue-meta"></div>
+      </div>
+      <div class="continue-progress-track"><div class="continue-progress-fill" id="continue-progress"></div></div>
+    </div>
+
+    <nav class="menu-buttons" aria-label="Главное меню">
+      <button class="btn btn-primary btn-lg" id="btn-continue" data-action="continue" style="display:none">▶ Продолжить</button>
+      <button class="btn btn-lg" id="btn-new-game" data-action="new-game">🧩 Новая игра</button>
+      <button class="btn btn-lg" id="btn-daily" data-action="daily">📅 Пазл дня</button>
+      <button class="btn" id="btn-gallery" data-action="gallery">🖼 Галерея</button>
+      <button class="btn" id="btn-my-photos" data-action="my-photos">📷 Мои фотографии</button>
+      <button class="btn" id="btn-stats" data-action="stats">📊 Статистика</button>
+      <button class="btn" id="btn-settings" data-action="settings">⚙ Настройки</button>
+    </nav>
+    <div class="app-version" id="app-version">Puzzle v1.0.0</div>
+  </div>
+</section>
+
+<!-- ============================ GALLERY ============================ -->
+<section id="screen-gallery" class="screen" data-screen="gallery">
+  <header class="topbar">
+    <button class="icon-btn" data-action="back">←</button>
+    <h2>Галерея</h2>
+    <span class="topbar-spacer"></span>
+  </header>
+  <div class="tabs" id="gallery-tabs"></div>
+  <div class="scroll-area">
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </div>
+</section>
+
+<!-- ============================ MY PHOTOS ============================ -->
+<section id="screen-my-photos" class="screen" data-screen="my-photos">
+  <header class="topbar">
+    <button class="icon-btn" data-action="back">←</button>
+    <h2>Мои фотографии</h2>
+    <span class="topbar-spacer"></span>
+  </header>
+  <div class="scroll-area">
+    <button class="add-photo-btn" id="btn-add-photo">
+      <span class="add-photo-icon">＋</span>
+      <span>Добавить свою фотографию</span>
+    </button>
+    <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
+    <div class="gallery-grid" id="my-photos-grid"></div>
+    <p class="hint-text" id="my-photos-empty">Фотографии сохраняются только на вашем устройстве и никуда не отправляются.</p>
+  </div>
+</section>
+
+<!-- ============================ PHOTO PREVIEW / CROP ============================ -->
+<section id="screen-photo-preview" class="screen" data-screen="photo-preview">
+  <header class="topbar">
+    <button class="icon-btn" data-action="back">←</button>
+    <h2>Ваша фотография</h2>
+    <span class="topbar-spacer"></span>
+  </header>
+  <div class="scroll-area photo-preview-area">
+    <div class="crop-stage" id="crop-stage">
+      <canvas id="crop-canvas"></canvas>
+    </div>
+    <p class="hint-text">Перетащите фото, чтобы выбрать область. Область в рамке станет пазлом.</p>
+    <input type="range" id="crop-zoom" min="100" max="300" value="100" class="zoom-slider">
+    <button class="btn btn-primary btn-lg" id="btn-confirm-photo">Использовать эту фотографию</button>
+  </div>
+</section>
+
+<!-- ============================ DIFFICULTY ============================ -->
+<section id="screen-difficulty" class="screen" data-screen="difficulty">
+  <header class="topbar">
+    <button class="icon-btn" data-action="back">←</button>
+    <h2>Выберите сложность</h2>
+    <span class="topbar-spacer"></span>
+  </header>
+  <div class="scroll-area">
+    <div class="difficulty-preview" id="difficulty-preview"></div>
+    <div class="difficulty-list" id="difficulty-list"></div>
+  </div>
+</section>
+
+<!-- ============================ TUTORIAL OVERLAY ============================ -->
+<div id="tutorial-overlay" class="overlay hidden">
+  <div class="overlay-card">
+    <h3>Как играть</h3>
+    <ol class="tutorial-steps">
+      <li>Перетащите деталь пальцем или мышью.</li>
+      <li>Подведите её к нужному месту.</li>
+      <li>Она зафиксируется автоматически.</li>
+      <li>Соберите всю картинку!</li>
+    </ol>
+    <button class="btn btn-primary btn-lg" id="btn-tutorial-close">Понятно</button>
+  </div>
+</div>
+
+<!-- ============================ GAME SCREEN ============================ -->
+<section id="screen-game" class="screen" data-screen="game">
+  <header class="game-hud">
+    <button class="icon-btn" id="btn-game-back" data-action="pause-then-back">←</button>
+    <div class="hud-title" id="hud-title">Пазл</div>
+    <button class="icon-btn" id="btn-game-menu" data-action="pause">⏸</button>
+  </header>
+  <div class="hud-stats" id="hud-stats">
+    <div class="hud-chip" id="hud-timer-chip"><span class="hud-label">Время</span><span class="hud-value" id="hud-timer">00:00</span></div>
+    <div class="hud-chip" id="hud-moves-chip"><span class="hud-label">Ходы</span><span class="hud-value" id="hud-moves">0</span></div>
+    <div class="hud-chip hud-progress-chip"><span class="hud-label">Прогресс</span><span class="hud-value" id="hud-progress">0%</span></div>
+  </div>
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+  </div>
+  <div class="game-toolbar">
+    <button class="tool-btn" data-action="hint" title="Подсказка">💡<span>Подсказка</span></button>
+    <button class="tool-btn" id="btn-view-original" data-action="view-original" title="Оригинал">👁<span>Оригинал</span></button>
+    <button class="tool-btn" data-action="shuffle" title="Перемешать">🔀<span>Заново</span></button>
+    <button class="tool-btn" data-action="pause" title="Пауза">⏸<span>Пауза</span></button>
+  </div>
+</section>
+
+<!-- ============================ PAUSE OVERLAY ============================ -->
+<div id="pause-overlay" class="overlay hidden">
+  <div class="overlay-card">
+    <h3>⏸ Пауза</h3>
+    <div class="overlay-buttons">
+      <button class="btn btn-primary btn-lg" id="btn-resume">Продолжить</button>
+      <button class="btn btn-lg" id="btn-restart-from-pause">Начать заново</button>
+      <button class="btn" id="btn-exit-to-menu">Выйти в меню</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ CONFIRM RESTART ============================ -->
+<div id="confirm-restart-overlay" class="overlay hidden">
+  <div class="overlay-card">
+    <h3>Начать заново?</h3>
+    <p>Текущий прогресс будет потерян.</p>
+    <div class="overlay-buttons overlay-buttons-row">
+      <button class="btn" id="btn-cancel-restart">Отмена</button>
+      <button class="btn btn-danger" id="btn-confirm-restart">Начать заново</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ WIN SCREEN ============================ -->
+<section id="screen-win" class="screen" data-screen="win">
+  <div class="scroll-area win-area">
+    <div class="win-header">
+      <div class="win-emoji">🎉</div>
+      <h2>Пазл собран!</h2>
+    </div>
+    <div class="win-image-wrap"><img id="win-image" alt=""></div>
+    <div id="win-record-badge" class="record-badge hidden">🏆 НОВЫЙ РЕКОРД!</div>
+    <div class="win-stats">
+      <div class="win-stat"><span class="win-stat-label">Время</span><span class="win-stat-value" id="win-time">00:00</span></div>
+      <div class="win-stat"><span class="win-stat-label">Ходы</span><span class="win-stat-value" id="win-moves">0</span></div>
+      <div class="win-stat"><span class="win-stat-label">Подсказки</span><span class="win-stat-value" id="win-hints">0</span></div>
+      <div class="win-stat win-stat-score"><span class="win-stat-label">Результат</span><span class="win-stat-value" id="win-score">0</span></div>
+    </div>
+    <div id="win-achievements" class="win-achievements"></div>
+    <div class="win-buttons">
+      <button class="btn btn-primary btn-lg" id="btn-next-puzzle">Следующий пазл</button>
+      <button class="btn btn-lg" id="btn-replay-puzzle">Повторить</button>
+      <button class="btn" id="btn-win-to-menu">В меню</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ STATS ============================ -->
+<section id="screen-stats" class="screen" data-screen="stats">
+  <header class="topbar">
+    <button class="icon-btn" data-action="back">←</button>
+    <h2>Моя статистика</h2>
+    <span class="topbar-spacer"></span>
+  </header>
+  <div class="scroll-area">
+    <div class="stats-grid" id="stats-overview"></div>
+    <h3 class="section-title">Рекорды по сложности</h3>
+    <div class="stats-list" id="stats-by-difficulty"></div>
+    <h3 class="section-title">Достижения</h3>
+    <div class="achievements-grid" id="achievements-grid"></div>
+  </div>
+</section>
+
+<!-- ============================ SETTINGS ============================ -->
+<section id="screen-settings" class="screen" data-screen="settings">
+  <header class="topbar">
+    <button class="icon-btn" data-action="back">←</button>
+    <h2>Настройки</h2>
+    <span class="topbar-spacer"></span>
+  </header>
+  <div class="scroll-area">
+    <div class="settings-group">
+      <div class="settings-label">Тема</div>
+      <div class="segmented" id="theme-segmented">
+        <button data-value="dark">Тёмная</button>
+        <button data-value="light">Светлая</button>
+        <button data-value="system">Системная</button>
+      </div>
+    </div>
+    <div class="settings-row"><span>🔊 Звуки</span><label class="switch"><input type="checkbox" id="setting-sound"><span class="slider"></span></label></div>
+    <div class="settings-row"><span>📳 Вибрация</span><label class="switch"><input type="checkbox" id="setting-vibration"><span class="slider"></span></label></div>
+    <div class="settings-row"><span>⏱ Показывать таймер</span><label class="switch"><input type="checkbox" id="setting-timer"><span class="slider"></span></label></div>
+    <div class="settings-row"><span>🔢 Показывать ходы</span><label class="switch"><input type="checkbox" id="setting-moves"><span class="slider"></span></label></div>
+    <div class="settings-row"><span>💾 Автосохранение</span><label class="switch"><input type="checkbox" id="setting-autosave"><span class="slider"></span></label></div>
+    <div class="settings-row"><span>✨ Анимации</span><label class="switch"><input type="checkbox" id="setting-animations"><span class="slider"></span></label></div>
+    <button class="btn btn-danger btn-lg reset-btn" id="btn-reset-progress">Сбросить весь прогресс</button>
+    <p class="hint-text">Puzzle v1.0.0 · Все данные хранятся только на этом устройстве.</p>
+  </div>
+</section>
+
+<div id="confirm-reset-overlay" class="overlay hidden">
+  <div class="overlay-card">
+    <h3>Сбросить весь прогресс?</h3>
+    <p>Статистика, рекорды, настройки и сохранённая игра будут удалены безвозвратно.</p>
+    <div class="overlay-buttons overlay-buttons-row">
+      <button class="btn" id="btn-cancel-reset">Отмена</button>
+      <button class="btn btn-danger" id="btn-confirm-reset">Сбросить</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-delete-photo-overlay" class="overlay hidden">
+  <div class="overlay-card">
+    <h3>Удалить фотографию?</h3>
+    <p>Это действие нельзя отменить.</p>
+    <div class="overlay-buttons overlay-buttons-row">
+      <button class="btn" id="btn-cancel-delete-photo">Отмена</button>
+      <button class="btn btn-danger" id="btn-confirm-delete-photo">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script src="storage.js"></script>
+<script src="audio.js"></script>
+<script src="puzzle.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
